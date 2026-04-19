@@ -5,6 +5,18 @@
 A simple AI agent that answers questions about the SMILE / LPI framework.
 It fetches real data from an LPI MCP server, combines it, and generates a structured answer using a local LLM (Ollama). No frameworks. Single file.
 
+## Project Versions
+
+### 1. Basic Agent (agent.py)
+- Simple version for evaluation
+- Uses 2 LPI tools
+- No external dependencies
+
+### 2. Advanced Agent (advanced_agent.py)
+- Uses MCP server
+- Uses Ollama (local LLM)
+- Dynamic tool selection
+- More intelligent reasoning
 ---
 
 ## How It Works
