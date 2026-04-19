@@ -1,88 +1,101 @@
 # LPI Smart Agent — Level 3
 
-def get_case_studies(query):
-    return f"Case Study: Real-world implementation of '{query}' showing practical applications."
+import subprocess
+import json
+
+MCP_COMMAND = ["node", "dist/src/index.js"]
 
 
-def query_knowledge(query):
-    return f"Knowledge: Core concepts and explanation of '{query}' based on LPI methodology."
+def start_mcp():
+    return subprocess.Popen(
+        MCP_COMMAND,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True
+    )
 
 
-def analyze_query(query):
-    query = query.lower()
-    tools = []
+def initialize_mcp(proc):
+    init_req = {
+        "jsonrpc": "2.0",
+        "id": 0,
+        "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "lpi-agent", "version": "1.0"}
+        }
+    }
 
-    if any(word in query for word in ["case", "example", "industry", "application"]):
-        tools.append("get_case_studies")
+    proc.stdin.write(json.dumps(init_req) + "\n")
+    proc.stdin.flush()
+    proc.stdout.readline()
 
-    if any(word in query for word in ["what", "how", "why", "explain", "define"]):
-        tools.append("query_knowledge")
-
-    # Ensure at least 2 tools are always used
-    if len(tools) < 2:
-        tools = ["get_case_studies", "query_knowledge"]
-
-    return tools
+    proc.stdin.write(json.dumps({
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized"
+    }) + "\n")
+    proc.stdin.flush()
 
 
-def process_results(query, results):
-    reasoning = f"The query '{query}' was analyzed using multiple tools to ensure both practical and conceptual understanding."
+def call_tool(proc, tool_name, args=None):
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+            "name": tool_name,
+            "arguments": args or {}
+        }
+    }
 
-    final_answer = "\n".join(results.values())
-
-    sources = "\n".join([f"- {tool}" for tool in results.keys()])
-
-    return reasoning, final_answer, sources
+    try:
+        proc.stdin.write(json.dumps(payload) + "\n")
+        proc.stdin.flush()
+        response = json.loads(proc.stdout.readline())
+        return response.get("result", {})
+    except Exception as e:
+        print(f"⚠️ Error calling {tool_name}: {e}")
+        return None
 
 
 def main():
-    print("🤖 LPI Smart Agent (Level 3 - Enhanced)\n")
+    print("🤖 LPI MCP Agent\n")
 
-    # ✅ ERROR HANDLING STARTS HERE
     try:
-        user_input = input("Enter your question: ").strip()
-
-        if not user_input:
-            raise ValueError("Input cannot be empty")
-
+        question = input("Enter your question: ").strip()
+        if not question:
+            raise ValueError("Empty input")
     except Exception as e:
         print(f"⚠️ Error: {e}")
         return
-    # ✅ ERROR HANDLING ENDS HERE
 
-    print("\n[Agent] Analyzing query...\n")
+    proc = start_mcp()
+    initialize_mcp(proc)
 
-    selected_tools = analyze_query(user_input)
+    tools = ["smile_overview", "query_knowledge"]
 
-    print(f"[Agent] Selected tools: {selected_tools}\n")
+    print(f"\n[Agent] Using tools: {tools}\n")
 
-    results = {}
+    results = []
 
-    print("[Agent] Fetching data...\n")
+    for tool in tools:
+        print(f"[Agent] Calling {tool}...")
+        params = {"query": question} if tool == "query_knowledge" else {}
 
-    try:
-        for tool in selected_tools:
-            if tool == "get_case_studies":
-                results["get_case_studies"] = get_case_studies(user_input)
+        res = call_tool(proc, tool, params)
 
-            elif tool == "query_knowledge":
-                results["query_knowledge"] = query_knowledge(user_input)
+        if res and "content" in res:
+            for block in res["content"]:
+                if block.get("type") == "text":
+                    results.append(block["text"])
 
-    except Exception as e:
-        print(f"⚠️ Error while fetching data: {e}")
-        return
+    proc.stdin.close()
+    proc.wait()
 
-    print("[Agent] Processing results...\n")
-
-    try:
-        reasoning = f"The agent used {len(selected_tools)} tools to answer the query."
-
-        final_answer = "\n\n".join(results.values())
-
-        sources = "\n".join([f"- {tool}" for tool in results.keys()])
-
-    except Exception as e:
-        print(f"⚠️ Error while processing results: {e}")
+    if not results:
+        print("⚠️ No data received from tools")
         return
 
     print("\n==============================")
@@ -90,13 +103,15 @@ def main():
     print("==============================\n")
 
     print("🧠 Reasoning:")
-    print(reasoning)
+    print("Used smile_overview and query_knowledge tools from LPI MCP server.\n")
 
-    print("\n✅ Final Answer:")
-    print(final_answer)
+    print("✅ Final Answer:")
+    for r in results:
+        print("-", r[:200], "...")
 
     print("\n📚 Sources:")
-    print(sources)
+    print("- smile_overview")
+    print("- query_knowledge")
 
 
 if __name__ == "__main__":
