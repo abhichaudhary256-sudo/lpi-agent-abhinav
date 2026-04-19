@@ -38,11 +38,17 @@ def process_results(query, results):
 def main():
     print("🤖 LPI Smart Agent (Level 3 - Enhanced)\n")
 
-    user_input = input("Enter your question: ").strip()
+    # ✅ ERROR HANDLING STARTS HERE
+    try:
+        user_input = input("Enter your question: ").strip()
 
-    if not user_input:
-        print("⚠️ Please enter a valid question.")
+        if not user_input:
+            raise ValueError("Input cannot be empty")
+
+    except Exception as e:
+        print(f"⚠️ Error: {e}")
         return
+    # ✅ ERROR HANDLING ENDS HERE
 
     print("\n[Agent] Analyzing query...\n")
 
@@ -54,20 +60,30 @@ def main():
 
     print("[Agent] Fetching data...\n")
 
-    for tool in selected_tools:
-        if tool == "get_case_studies":
-            results["get_case_studies"] = get_case_studies(user_input)
+    try:
+        for tool in selected_tools:
+            if tool == "get_case_studies":
+                results["get_case_studies"] = get_case_studies(user_input)
 
-        elif tool == "query_knowledge":
-            results["query_knowledge"] = query_knowledge(user_input)
+            elif tool == "query_knowledge":
+                results["query_knowledge"] = query_knowledge(user_input)
+
+    except Exception as e:
+        print(f"⚠️ Error while fetching data: {e}")
+        return
 
     print("[Agent] Processing results...\n")
 
-    reasoning = f"The agent used {len(selected_tools)} tools to answer the query."
+    try:
+        reasoning = f"The agent used {len(selected_tools)} tools to answer the query."
 
-    final_answer = "\n\n".join(results.values())
+        final_answer = "\n\n".join(results.values())
 
-    sources = "\n".join([f"- {tool}" for tool in results.keys()])
+        sources = "\n".join([f"- {tool}" for tool in results.keys()])
+
+    except Exception as e:
+        print(f"⚠️ Error while processing results: {e}")
+        return
 
     print("\n==============================")
     print("🤖 LPI AGENT RESPONSE")
