@@ -5,7 +5,10 @@ import json
 import requests
 
 # ── CONFIG ─────────────────────────────────────────
-MCP_COMMAND = ["node", "dist/src/index.js"]
+MCP_COMMAND = [
+    "node",
+    "C:/Users/abhic/lpi-developer-kit/dist/src/index.js"
+]
 OLLAMA_URL = "http://localhost:11434/api/generate"
 OLLAMA_MODEL = "llama3"
 
